@@ -1,7 +1,11 @@
 # No Tax on Overtime Calculator — Formula & Methodology
 
 **Live Tool:** [notaxovertimecalculator.com](https://notaxovertimecalculator.com)
-**Author:** Michal Anderson, CPA
+**Formula:** Publicly auditable — open for review by any tax professional
+**Maintained by:** notaxovertimecalculator.com
+**Formula status:** Open for review — no credentials claimed
+**Last reviewed:** April 2026
+**Last Updated:** April 2026
 **Law:** One Big Beautiful Bill Act (OBBBA), signed July 4, 2025
 **Applies to:** Tax Years 2025 – 2028
 **Last Updated:** July 2025
