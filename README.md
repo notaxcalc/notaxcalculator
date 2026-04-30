@@ -10,6 +10,12 @@
 **Applies to:** Tax Years 2025 – 2028
 **Last Updated:** July 2025
 
+## Documentation
+- [FORMULA.md](./FORMULA.md) — Core formula and pseudocode
+- [METHODOLOGY.md](./METHODOLOGY.md) — Full step-by-step methodology, 
+  worked examples, edge cases, and known limitations
+- [CHANGELOG.md](./CHANGELOG.md) — Version history
+
 ---
 
 ## What This Repository Contains
