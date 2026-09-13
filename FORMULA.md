@@ -1,114 +1,212 @@
 # Calculation Formula Reference
 
-**Calculator:** No Tax on Overtime Calculator
-**URL:** https://notaxovertimecalculator.com
-**Author:** Michal Anderson, CPA
-**Formula Version:** v1.1
+**Calculator:** No Tax on Overtime Calculator  
+**Live Tool:** https://notaxovertimecalculator.com/  
+**Formula status:** Public documentation for review  
+**Current focus:** Tax Year 2026
 
----
+## 1. Inputs
 
-## Input Variables
+The simplified calculator accepts:
 
-| Variable | Description | Example |
-|---|---|---|
-| filing_status | "single" or "married_filing_jointly" | "single" |
-| weekly_base_pay | Regular weekly wages (no overtime) | $800 |
-| weekly_overtime_premium | The extra 0.5x portion of OT pay only | $100 |
-| weekly_tips | Reported tip income per week | $200 |
+- `filing_status`
+- `regular_hourly_rate`
+- `overtime_hours`
+- `overtime_multiplier`
+- `magi_before_overtime`
+- `tax_year`
 
----
+The public calculator constrains the overtime multiplier to a reasonable range and uses 1.5x as the standard FLSA overtime example.
 
-## Constants (Tax Year 2025)
+## 2. Total overtime pay
 
-| Constant | Single | Married Filing Jointly |
-|---|---|---|
-| Overtime deduction cap | $12,500 | $25,000 |
-| Tips deduction cap | $12,500 | $25,000 |
-| Phase-out threshold | $150,000 MAGI | $300,000 MAGI |
-| Phase-out elimination | $275,000 MAGI | $550,000 MAGI |
-| Phase-out rate | $100 per $1,000 over threshold | Same |
-| Standard deduction | $15,000 | $30,000 |
-
----
-
-## Formula
-
-```
-annual_base    = weekly_base_pay x 52
-annual_ot      = weekly_overtime_premium x 52
-annual_tips    = weekly_tips x 52
-magi           = annual_base
-capped_ot      = MIN(annual_ot, ot_cap)
-excess         = MAX(0, magi - phase_out_threshold)
-reduction      = FLOOR(excess / 1000) x 100
-final_ot_ded   = MAX(0, capped_ot - reduction)
-taxable_income = MAX(0, magi - standard_deduction)
-marginal_rate  = bracket_lookup(taxable_income, filing_status)
-ot_savings     = final_ot_ded x marginal_rate
-tips_savings   = MIN(annual_tips, tips_cap) x marginal_rate
-total_savings  = ot_savings + tips_savings
+```text
+total_overtime_pay =
+    regular_hourly_rate × overtime_hours × overtime_multiplier
 ```
 
----
+Example:
 
-## Worked Example 1 — Single Nurse
+```text
+regular rate = $20
+overtime hours = 100
+multiplier = 1.5
 
-Input: $900/week base | $150/week OT premium | Single filer
-
-```
-annual_ot      = $7,800
-capped_ot      = $7,800  (under $12,500 cap)
-magi           = $46,800  (below phase-out)
-reduction      = $0
-taxable_income = $31,800
-marginal_rate  = 12%
-savings        = $7,800 x 0.12 = $936/year
+total overtime pay = $20 × 100 × 1.5
+                   = $3,000
 ```
 
----
+## 3. Qualified overtime premium
 
-## Worked Example 2 — Restaurant Worker with Tips
+For the calculator's simplified estimate, the qualified premium is based on the FLSA-style half-time premium:
 
-Input: $600/week base | $80 OT premium | $300/week tips | Single filer
-
-```
-annual_ot      = $4,160
-annual_tips    = $15,600 capped to $12,500
-magi           = $31,200
-reduction      = $0
-marginal_rate  = 12%
-ot_savings     = $499/year
-tips_savings   = $1,500/year
-total          = $1,999/year
+```text
+qualified_overtime =
+    regular_hourly_rate × overtime_hours × 0.5
 ```
 
----
+For a 1.5x overtime rate:
 
-## Worked Example 3 — Phase-Out Applies
-
-Input: $3,200/week base | $400 OT premium | Single filer
-
-```
-annual_ot      = $20,800 capped to $12,500
-magi           = $166,400
-excess         = $16,400
-reduction      = $1,600
-final_ot_ded   = $10,900
-marginal_rate  = 24%
-savings        = $2,616/year
+```text
+$20 × 100 × 0.5 = $1,000
 ```
 
----
+The calculator does not treat the full $3,000 overtime paycheck as qualified.
 
-## Pending IRS Guidance
+For higher overtime multipliers, the calculator continues to use the 0.5x regular-rate premium for this simplified estimate. Complex compensation arrangements should be checked against payroll records and applicable IRS guidance.
 
-| Item | Status |
-|---|---|
-| Schedule 1 line designation | Pending |
-| State-mandated overtime only | Pending |
-| Double-time premium | Pending |
-| 2026 W-2 mandatory OT reporting | Confirmed mandatory |
+## 4. Deduction cap
 
----
+```text
+if filing_status is Single or Head of Household:
+    cap = $12,500
 
-*Version v1.1 | Last updated July 2025 | Reviewed by Michal Anderson, CPA*
+if filing_status is Married Filing Jointly:
+    cap = $25,000
+
+capped_deduction = MIN(qualified_overtime, cap)
+```
+
+## 5. Phaseout
+
+The simplified phaseout is:
+
+```text
+Single / Head of Household threshold = $150,000
+Married Filing Jointly threshold     = $300,000
+```
+
+For each $1,000 above the applicable threshold, the deduction is reduced by $100.
+
+```text
+excess_magi = MAX(0, estimated_magi - threshold)
+
+phaseout_reduction =
+    FLOOR(excess_magi / 1000) × 100
+
+final_deduction =
+    MAX(0, capped_deduction - phaseout_reduction)
+```
+
+## 6. Estimated MAGI handling
+
+The calculator is not a complete MAGI calculator.
+
+The user enters an estimated MAGI amount before overtime. For phaseout purposes, the implementation may incorporate estimated overtime pay into the modeled income used by the calculator.
+
+Therefore:
+
+```text
+estimated_magi =
+    user_estimated_magi_before_overtime
+    + estimated_overtime_pay
+```
+
+This is a modeling assumption, not a substitute for the MAGI calculation on an actual federal tax return.
+
+Users should use their actual tax documents and tax-return calculations when filing.
+
+## 7. Federal tax savings estimate
+
+The calculator estimates the tax benefit by applying an estimated marginal federal tax rate to the final deduction:
+
+```text
+estimated_federal_tax_savings =
+    final_deduction × estimated_marginal_rate
+```
+
+This is an estimate, not a guarantee of the exact reduction in final federal tax liability.
+
+## 8. 2026 federal marginal-rate inputs
+
+The calculator's 2026 presets use these federal income-tax brackets.
+
+### Single
+
+| Taxable income | Rate |
+|---|---:|
+| $0 - $12,400 | 10% |
+| $12,400 - $50,400 | 12% |
+| $50,400 - $105,700 | 22% |
+| $105,700 - $201,775 | 24% |
+| $201,775 - $256,225 | 32% |
+| $256,225 - $640,600 | 35% |
+| Over $640,600 | 37% |
+
+### Married Filing Jointly
+
+| Taxable income | Rate |
+|---|---:|
+| $0 - $24,800 | 10% |
+| $24,800 - $100,800 | 12% |
+| $100,800 - $211,400 | 22% |
+| $211,400 - $403,550 | 24% |
+| $403,550 - $512,450 | 32% |
+| $512,450 - $768,700 | 35% |
+| Over $768,700 | 37% |
+
+### Head of Household
+
+| Taxable income | Rate |
+|---|---:|
+| $0 - $17,700 | 10% |
+| $17,700 - $67,450 | 12% |
+| $67,450 - $105,700 | 22% |
+| $105,700 - $201,750 | 24% |
+| $201,750 - $256,200 | 32% |
+| $256,200 - $640,600 | 35% |
+| Over $640,600 | 37% |
+
+The 2026 standard-deduction presets are:
+
+- Single: $16,100
+- Married Filing Jointly: $32,200
+- Head of Household: $24,150
+
+## 9. Worked example
+
+Assume:
+
+```text
+Filing status: Single
+Regular rate: $20/hour
+Overtime: 200 hours
+Multiplier: 1.5x
+Estimated MAGI before overtime: $80,000
+```
+
+Qualified overtime estimate:
+
+```text
+$20 × 200 × 0.5 = $2,000
+```
+
+The $2,000 amount is below the $12,500 individual cap.
+
+If the modeled MAGI remains below the phaseout threshold, the estimated qualified overtime deduction is:
+
+```text
+$2,000
+```
+
+The final estimated federal tax savings depends on the modeled marginal tax rate.
+
+## 10. What is not included
+
+The formula does not attempt to calculate:
+
+- state income taxes;
+- Social Security taxes;
+- Medicare taxes;
+- payroll withholding refunds;
+- a complete federal tax return;
+- every MAGI adjustment;
+- every FLSA overtime exception;
+- every special compensation arrangement;
+- employer payroll corrections.
+
+## 11. Reporting versus estimating
+
+For 2026, the employer-reported qualified overtime amount should be given priority when preparing a federal tax return.
+
+The calculator is intended for planning and estimation. It should not be used to override W-2 reporting or other official tax documents without appropriate professional review.
